@@ -22,14 +22,24 @@ function isValidNajahEmail(email) {
 async function ensureAdminUser() {
   const client = await pool.connect();
   try {
-    const r = await client.query("SELECT 1 FROM app_users WHERE email = 'admin' LIMIT 1");
+    const adminEmail = 'admin@najah.edu';
+    const hash = await bcrypt.hash('1234', 10);
+    const r = await client.query('SELECT 1 FROM app_users WHERE email = $1 LIMIT 1', [adminEmail]);
     if (r.rows.length === 0) {
-      const hash = await bcrypt.hash('admin', 10);
-      await client.query(
-        "INSERT INTO app_users (email, password_hash, role) VALUES ($1, $2, 'admin')",
-        ['admin', hash]
-      );
-      console.log('Admin user created (email: admin, password: admin). Change password in production.');
+      const old = await client.query("SELECT 1 FROM app_users WHERE email = 'admin' LIMIT 1");
+      if (old.rows.length > 0) {
+        await client.query(
+          "UPDATE app_users SET email = $1, password_hash = $2 WHERE email = 'admin'",
+          [adminEmail, hash]
+        );
+        console.log('Admin user updated to admin@najah.edu with password 1234.');
+      } else {
+        await client.query(
+          "INSERT INTO app_users (email, password_hash, role) VALUES ($1, $2, 'admin')",
+          [adminEmail, hash]
+        );
+        console.log('Admin user created (email: admin@najah.edu, password: 1234).');
+      }
     }
   } finally {
     client.release();

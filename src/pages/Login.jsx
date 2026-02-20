@@ -21,14 +21,8 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
-  const isAdminLogin = email.trim().toLowerCase() === "admin";
-
   const handleEmailBlur = () => {
     if (!email.trim()) {
-      setEmailError("");
-      return;
-    }
-    if (isAdminLogin) {
       setEmailError("");
       return;
     }
@@ -42,7 +36,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoginError("");
-    if (!isAdminLogin && !isValidNajahEmail(email)) {
+    if (!isValidNajahEmail(email)) {
       setEmailError(
         "Please use an email ending with @stu.najah.edu or @najah.edu"
       );
