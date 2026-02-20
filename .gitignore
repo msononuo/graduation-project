@@ -137,3 +137,22 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# PostgreSQL project db folder (runtime data; config and README stay tracked)
+/db/base/
+/db/global/
+/db/pg_wal/
+/db/pg_commit_ts/
+/db/pg_dynshmem/
+/db/pg_logical/
+/db/pg_multixact/
+/db/pg_notify/
+/db/pg_replslot/
+/db/pg_serial/
+/db/pg_snapshots/
+/db/pg_stat/
+/db/pg_stat_tmp/
+/db/pg_tblspc/
+/db/pg_twophase/
+/db/postmaster.pid
+/db/logfile

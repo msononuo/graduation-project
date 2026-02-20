@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 const centerLinks = [
   { to: "/", label: "Home", end: true },
@@ -27,7 +27,24 @@ function LogoPlaceholder() {
 }
 
 function Navbar() {
+  const location = useLocation();
   const [logoError, setLogoError] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      setUser(stored ? JSON.parse(stored) : null);
+    } catch {
+      setUser(null);
+    }
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/login";
+  };
 
   const centerLinkClass = ({ isActive }) =>
     `${linkBase} py-4 border-b-2 border-transparent -mb-[2px] ${
@@ -74,12 +91,19 @@ function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4 sm:gap-6 md:gap-8 flex-shrink-0">
-          <NavLink to="/login" end className={authLinkClass}>
-            Login
-          </NavLink>
-          <NavLink to="/register" end className={authLinkClass}>
-            Register
-          </NavLink>
+          {user ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`${authLinkClass({ isActive: false })} border-0 bg-transparent cursor-pointer`}
+            >
+              Logout
+            </button>
+          ) : (
+            <NavLink to="/login" end className={authLinkClass}>
+              Login
+            </NavLink>
+          )}
         </div>
       </div>
     </header>
