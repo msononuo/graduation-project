@@ -91,6 +91,11 @@ function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4 sm:gap-6 md:gap-8 flex-shrink-0">
+          {user?.role === "admin" && (
+            <NavLink to="/admin" end className={authLinkClass}>
+              Admin
+            </NavLink>
+          )}
           {user ? (
             <button
               type="button"

@@ -156,3 +156,5 @@ vite.config.ts.timestamp-*
 /db/pg_twophase/
 /db/postmaster.pid
 /db/logfile
+/db/pg_subtrans/
+/db/pg_xact/
