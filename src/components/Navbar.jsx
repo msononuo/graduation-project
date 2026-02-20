@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 const centerLinks = [
   { to: "/", label: "Home", end: true },
@@ -27,15 +27,24 @@ function LogoPlaceholder({ className = "" }) {
 }
 
 function Navbar() {
+  const location = useLocation();
   const [logoError, setLogoError] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    try {
+      const stored = localStorage.getItem("user");
+      setUser(stored ? JSON.parse(stored) : null);
+    } catch {
+      setUser(null);
+    }
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/login";
+  };
 
   const centerLinkClass = ({ isActive }) =>
     `${linkBase} ${isActive ? "border-b-2 border-[#00356b] pb-1 font-semibold text-[#00356b]" : "border-b-2 border-transparent pb-1"}`;
@@ -83,15 +92,25 @@ function Navbar() {
           ))}
         </nav>
 
-        {/* Right: Login | Register — desktop only */}
-        <div className="hidden lg:flex items-center gap-4 flex-shrink-0">
-          <NavLink to="/login" end className={authLinkClass}>
-            Login
-          </NavLink>
-          <span className="h-4 w-px bg-slate-200" aria-hidden />
-          <NavLink to="/register" end className={authLinkClass}>
-            Register
-          </NavLink>
+        <div className="flex items-center gap-4 sm:gap-6 md:gap-8 flex-shrink-0">
+          {user?.role === "admin" && (
+            <NavLink to="/admin" end className={authLinkClass}>
+              Admin
+            </NavLink>
+          )}
+          {user ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`${authLinkClass({ isActive: false })} border-0 bg-transparent cursor-pointer`}
+            >
+              Logout
+            </button>
+          ) : (
+            <NavLink to="/login" end className={authLinkClass}>
+              Login
+            </NavLink>
+          )}
         </div>
 
         {/* Mobile: hamburger */}
