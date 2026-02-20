@@ -59,7 +59,7 @@ function Colleges() {
       <section className="bg-[#f7f6f3] pt-12 pb-20">
         <div className="max-w-screen-2xl mx-auto px-6 lg:px-10">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <h1 className="font-serif text-3xl md:text-4xl font-semibold text-[#0b2d52] tracking-tight mb-4">
+            <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-semibold text-[#0b2d52] leading-tight tracking-tight mb-5">
               Our Colleges
             </h1>
             <p className="text-slate-600 leading-relaxed">
