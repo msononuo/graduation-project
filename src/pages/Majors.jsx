@@ -163,6 +163,7 @@ function Majors() {
                 <Link
                   key={major.id}
                   to={`/majors/${major.id}`}
+                  state={{ from: 'majors' }}
                   className="group bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex"
                 >
                   <div className="relative w-24 h-24 flex-shrink-0 bg-slate-100">

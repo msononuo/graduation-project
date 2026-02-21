@@ -147,6 +147,7 @@ function SingleCollege() {
               <Link
                 key={major.id}
                 to={`/majors/${major.id}`}
+                state={{ from: 'college' }}
                 className="bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group"
               >
                 <div className="h-40 rounded-t-lg overflow-hidden bg-slate-100 relative flex">

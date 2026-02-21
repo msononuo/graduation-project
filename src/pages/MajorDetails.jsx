@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import MajorChat from '../components/MajorChat';
 
 // Full details per major (for major detail page)
@@ -49,6 +49,16 @@ const MAJORS_DETAILS = {
     studyDuration: '4 Years',
     aboutText: 'The Information Technology program bridges business and technology, focusing on systems administration, networking, databases, and application development to support organizational needs.',
   },
+  'eng-ee': { id: 'eng-ee', name: 'Electrical Engineering', shortName: 'Electrical Engineering', department: 'Department of Electrical Engineering', collegeId: '1', collegeName: 'College of Engineering & Information Technology', collegeShortName: 'Engineering & IT', tagline: 'Design and analyze electrical systems', requiredGpa: '85%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'The Electrical Engineering program covers microelectronics, power systems, and signal processing, preparing graduates for roles in industry and research.' },
+  'eng-ce': { id: 'eng-ce', name: 'Civil Engineering', shortName: 'Civil Engineering', department: 'Department of Civil Engineering', collegeId: '1', collegeName: 'College of Engineering & Information Technology', collegeShortName: 'Engineering & IT', tagline: 'Infrastructure and the built environment', requiredGpa: '82%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Civil Engineering focuses on planning, design, and management of infrastructure including buildings, roads, and water systems.' },
+  'eng-me': { id: 'eng-me', name: 'Mechanical Engineering', shortName: 'Mechanical Engineering', department: 'Department of Mechanical Engineering', collegeId: '1', collegeName: 'College of Engineering & Information Technology', collegeShortName: 'Engineering & IT', tagline: 'Machines, systems, and thermodynamics', requiredGpa: '83%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Mechanical Engineering applies principles of mechanics and thermodynamics to design and analyze machines and systems.' },
+  'eng-se': { id: 'eng-se', name: 'Software Engineering', shortName: 'Software Engineering', department: 'Department of Computer Science', collegeId: '1', collegeName: 'College of Engineering & Information Technology', collegeShortName: 'Engineering & IT', tagline: 'Reliable, scalable software systems', requiredGpa: '84%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Software Engineering emphasizes systematic design, development, and maintenance of high-quality software.' },
+  'arts-econ': { id: 'arts-econ', name: 'Economics', shortName: 'Economics', department: 'Department of Economics', collegeId: '3', collegeName: 'College of Arts & Sciences', collegeShortName: 'Arts & Sciences', tagline: 'Markets, policy, and economic theory', requiredGpa: '78%', highSchoolTrack: 'Scientific, Lit, Comm', degreeType: 'B.A.', studyDuration: '4 Years', aboutText: 'The Economics program explores markets, policy, and economic theory to analyze real-world issues and prepare for careers in analysis, finance, and policy.' },
+  'arts-psych': { id: 'arts-psych', name: 'Psychology', shortName: 'Psychology', department: 'Department of Psychology', collegeId: '3', collegeName: 'College of Arts & Sciences', collegeShortName: 'Arts & Sciences', tagline: 'Human behavior and mental processes', requiredGpa: '77%', highSchoolTrack: 'Scientific, Lit, Comm', degreeType: 'B.A.', studyDuration: '4 Years', aboutText: 'Psychology combines research and applied practice to study human behavior and mental processes.' },
+  'arts-bio': { id: 'arts-bio', name: 'Biology', shortName: 'Biology', department: 'Department of Biology', collegeId: '3', collegeName: 'College of Arts & Sciences', collegeShortName: 'Arts & Sciences', tagline: 'Living systems from molecules to ecosystems', requiredGpa: '80%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Biology explores living systems from molecular mechanisms to ecosystems, with opportunities for lab and field work.' },
+  'bus-mgmt': { id: 'bus-mgmt', name: 'Business Administration', shortName: 'Business Administration', department: 'Department of Business Administration', collegeId: '4', collegeName: 'College of Business & Economics', collegeShortName: 'Business School', tagline: 'Leadership in management and strategy', requiredGpa: '76%', highSchoolTrack: 'Scientific, Lit, Comm', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Business Administration prepares students for leadership in management, strategy, and organizational development.' },
+  'med-nursing': { id: 'med-nursing', name: 'Nursing', shortName: 'Nursing', department: 'Department of Nursing', collegeId: '2', collegeName: 'College of Medicine & Health', collegeShortName: 'Medicine & Health', tagline: 'Clinical practice and patient care', requiredGpa: '82%', highSchoolTrack: 'Scientific', degreeType: 'B.Sc', studyDuration: '4 Years', aboutText: 'Nursing trains students for clinical practice and patient care in diverse healthcare settings.' },
+  'law-legal': { id: 'law-legal', name: 'Law', shortName: 'Law', department: 'Department of Law', collegeId: '5', collegeName: 'College of Law & Policy', collegeShortName: 'Law & Policy', tagline: 'Legal reasoning and advocacy', requiredGpa: '79%', highSchoolTrack: 'Lit, Comm', degreeType: 'B.A.', studyDuration: '4 Years', aboutText: 'Law develops legal reasoning and advocacy skills for practice or policy roles.' },
 };
 
 const INFO_CARD_ICONS = {
@@ -77,7 +87,9 @@ const INFO_CARD_ICONS = {
 
 function MajorDetails() {
   const { id } = useParams();
+  const location = useLocation();
   const major = MAJORS_DETAILS[id];
+  const fromMajors = location.state?.from === 'majors';
 
   // Scroll to top when navigating to this major page (fixes content appearing at bottom)
   useEffect(() => {
@@ -107,17 +119,29 @@ function MajorDetails() {
   return (
     <div className="text-gray-900 bg-white min-h-screen">
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10 pt-8 pb-20">
-        {/* Breadcrumb — Colleges → Engineering & IT → Major (same style as colleges page) */}
+        {/* Breadcrumb — from Majors: Majors → name; from College: Colleges → college → name */}
         <nav className="flex items-center gap-2 text-sm mb-8" aria-label="Breadcrumb">
-          <Link to="/colleges" className="text-slate-500 hover:text-[#00356b] hover:underline transition">
-            Colleges
-          </Link>
-          <span className="text-slate-300" aria-hidden>›</span>
-          <Link to={`/colleges/${major.collegeId}`} className="text-slate-500 hover:text-[#00356b] hover:underline transition">
-            {major.collegeShortName}
-          </Link>
-          <span className="text-slate-300" aria-hidden>›</span>
-          <span className="font-semibold text-[#00356b]">{major.shortName}</span>
+          {fromMajors ? (
+            <>
+              <Link to="/majors" className="text-slate-500 hover:text-[#00356b] hover:underline transition">
+                Majors
+              </Link>
+              <span className="text-slate-300" aria-hidden>›</span>
+              <span className="font-semibold text-[#00356b]">{major.shortName}</span>
+            </>
+          ) : (
+            <>
+              <Link to="/colleges" className="text-slate-500 hover:text-[#00356b] hover:underline transition">
+                Colleges
+              </Link>
+              <span className="text-slate-300" aria-hidden>›</span>
+              <Link to={`/colleges/${major.collegeId}`} className="text-slate-500 hover:text-[#00356b] hover:underline transition">
+                {major.collegeShortName}
+              </Link>
+              <span className="text-slate-300" aria-hidden>›</span>
+              <span className="font-semibold text-[#00356b]">{major.shortName}</span>
+            </>
+          )}
         </nav>
 
         {/* Title block — department, major name, subtitle */}
