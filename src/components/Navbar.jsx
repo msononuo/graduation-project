@@ -30,6 +30,14 @@ function Navbar() {
   const location = useLocation();
   const [logoError, setLogoError] = useState(false);
   const [user, setUser] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     try {
@@ -107,9 +115,15 @@ function Navbar() {
               Logout
             </button>
           ) : (
-            <NavLink to="/login" end className={authLinkClass}>
-              Login
-            </NavLink>
+            <>
+              <NavLink to="/login" end className={authLinkClass}>
+                Login
+              </NavLink>
+              <span className="h-4 w-px bg-slate-200" aria-hidden />
+              <NavLink to="/register" end className={authLinkClass}>
+                Register
+              </NavLink>
+            </>
           )}
         </div>
 
