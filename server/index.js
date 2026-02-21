@@ -216,6 +216,24 @@ async function ensureAdminUser() {
   }
 }
 
+async function ensureSeedStudentUser() {
+  const studentEmail = 'student@st.najah.edu';
+  const client = await pool.connect();
+  try {
+    const r = await client.query('SELECT 1 FROM app_users WHERE email = $1 LIMIT 1', [studentEmail]);
+    if (r.rows.length === 0) {
+      const hash = await bcrypt.hash('1234', 10);
+      await client.query(
+        "INSERT INTO app_users (email, password_hash, role, must_change_password, must_complete_profile) VALUES ($1, $2, 'student', FALSE, FALSE)",
+        [studentEmail, hash]
+      );
+      console.log('Seed student created (email: student@st.najah.edu, password: 1234).');
+    }
+  } finally {
+    client.release();
+  }
+}
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
@@ -319,7 +337,10 @@ app.get('/api/events/:id', (req, res) => {
   res.json(event);
 });
 
-app.get('/api/admin/users', async (req, res) => {
+// Admin users API (router so DELETE /:id is matched reliably)
+const adminUsersRouter = express.Router();
+
+adminUsersRouter.get('/', async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT id, email, role, first_name, middle_name, last_name,
@@ -333,7 +354,7 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-app.post('/api/admin/users', async (req, res) => {
+adminUsersRouter.post('/', async (req, res) => {
   const { first_name, middle_name, last_name, student_number, college, major, phone, email, role } = req.body || {};
   const fn = typeof first_name === 'string' ? first_name.trim() : '';
   const ln = typeof last_name === 'string' ? last_name.trim() : '';
@@ -365,7 +386,7 @@ app.post('/api/admin/users', async (req, res) => {
   }
 });
 
-app.put('/api/admin/users/:id', async (req, res) => {
+adminUsersRouter.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid user ID.' });
   const { first_name, middle_name, last_name, student_number, college, major, phone, email, role, new_password } = req.body || {};
@@ -408,6 +429,24 @@ app.put('/api/admin/users/:id', async (req, res) => {
     res.status(500).json({ error: 'Could not update user.' });
   }
 });
+
+adminUsersRouter.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid user ID.' });
+  try {
+    const r = await pool.query('SELECT id, role FROM app_users WHERE id = $1', [id]);
+    const target = r.rows[0];
+    if (!target) return res.status(404).json({ error: 'User not found.' });
+    if (target.role === 'admin') return res.status(403).json({ error: 'Cannot delete admin users.' });
+    await pool.query('DELETE FROM app_users WHERE id = $1', [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: 'Could not delete user.' });
+  }
+});
+
+app.use('/api/admin/users', adminUsersRouter);
 
 app.post('/api/auth/change-password', async (req, res) => {
   const { email, oldPassword, newPassword } = req.body || {};
@@ -464,16 +503,42 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/google', async (req, res) => {
-  const { credential } = req.body || {};
-  if (!credential) {
-    return res.status(400).json({ error: 'Missing Google credential' });
+  const { credential, access_token } = req.body || {};
+  if (!credential && !access_token) {
+    return res.status(400).json({ error: 'Missing Google credential or access token.' });
   }
   try {
-    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (!resp.ok) {
-      return res.status(401).json({ error: 'Invalid Google sign-in. Please try again.' });
+    let data;
+    if (credential) {
+      const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
+      const resp = await fetch(url);
+      data = await resp.json();
+      if (!resp.ok) {
+        console.error('Google tokeninfo error:', resp.status, data);
+        const msg = (data.error_description || data.error || '').toString();
+        const hint = msg.toLowerCase().includes('invalid') || resp.status === 401
+          ? ' Check that your app URL is in Authorized JavaScript origins in Google Cloud Console.'
+          : '';
+        return res.status(401).json({
+          error: (data.error_description || data.error || 'Invalid Google sign-in. Please try again.') + hint,
+        });
+      }
+    } else {
+      const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      data = await resp.json();
+      if (!resp.ok) {
+        console.error('Google userinfo error:', resp.status, data);
+        const msg = (data.error?.message || data.error_description || data.error || '').toString();
+        const hint = msg.toLowerCase().includes('invalid') || resp.status === 401
+          ? ' Ensure your app URL (e.g. http://localhost:1573) is in Authorized JavaScript origins and you are using a valid Client ID.'
+          : '';
+        return res.status(401).json({
+          error: (data.error?.message || data.error_description || data.error || 'Invalid Google sign-in. Please try again.') + hint,
+        });
+      }
+      data.email_verified = data.email ? true : false;
     }
     const email = (data.email || '').trim().toLowerCase();
     if (!email || !data.email_verified) {
@@ -523,13 +588,20 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 app.post('/api/auth/complete-profile', async (req, res) => {
-  const { email, first_name, middle_name, last_name, student_number, college, major, phone } = req.body || {};
+  const { email, first_name, middle_name, last_name, student_number, college, major, phone, password } = req.body || {};
   const fn = typeof first_name === 'string' ? first_name.trim() : '';
   const ln = typeof last_name === 'string' ? last_name.trim() : '';
   const sn = typeof student_number === 'string' ? student_number.trim() : String(student_number || '').trim();
   const em = typeof email === 'string' ? email.trim().toLowerCase() : '';
   if (!em || !fn || !ln || !sn) {
     return res.status(400).json({ error: 'Email, first name, last name, and student number are required.' });
+  }
+  const rawPassword = typeof password === 'string' ? password.trim() : '';
+  if (!rawPassword) {
+    return res.status(400).json({ error: 'Password is required to complete your profile.' });
+  }
+  if (rawPassword.length < 4) {
+    return res.status(400).json({ error: 'Password must be at least 4 characters.' });
   }
   try {
     const r = await pool.query(
@@ -543,10 +615,11 @@ app.post('/api/auth/complete-profile', async (req, res) => {
     if (!user.must_complete_profile) {
       return res.status(400).json({ error: 'Profile already completed.' });
     }
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
     await pool.query(
-      `UPDATE app_users SET first_name = $1, middle_name = $2, last_name = $3, student_number = $4, college = $5, major = $6, phone = $7, must_complete_profile = FALSE
-       WHERE id = $8`,
-      [fn, (middle_name && String(middle_name).trim()) || null, ln, sn, (college && String(college).trim()) || null, (major && String(major).trim()) || null, (phone && String(phone).trim()) || null, user.id]
+      `UPDATE app_users SET first_name = $1, middle_name = $2, last_name = $3, student_number = $4, college = $5, major = $6, phone = $7, password_hash = $8, must_change_password = FALSE, must_complete_profile = FALSE
+       WHERE id = $9`,
+      [fn, (middle_name && String(middle_name).trim()) || null, ln, sn, (college && String(college).trim()) || null, (major && String(major).trim()) || null, (phone && String(phone).trim()) || null, passwordHash, user.id]
     );
     const updated = await pool.query(
       `SELECT id, email, role, first_name, last_name, must_change_password, must_complete_profile FROM app_users WHERE id = $1`,
@@ -721,6 +794,7 @@ app.listen(PORT, async () => {
     await ensureSchema();
     await seedCollegesIfEmpty();
     await ensureAdminUser();
+    await ensureSeedStudentUser();
   } catch (e) {
     console.error('Startup error:', e.message);
   }

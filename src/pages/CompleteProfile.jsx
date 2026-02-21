@@ -1,30 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const COLLEGES_LIST = [
-  "College of Engineering",
-  "College of Medicine",
-  "College of Arts & Sciences",
-  "College of Business & Economics",
-  "College of Law",
-  "College of Information Technology",
-  "College of Education",
-  "College of Pharmacy",
-];
-
-const MAJORS_BY_COLLEGE = {
-  "College of Engineering": ["Civil Engineering", "Electrical Engineering", "Mechanical Engineering", "Architecture", "Chemical Engineering"],
-  "College of Medicine": ["Medicine", "Nursing", "Medical Lab Sciences"],
-  "College of Arts & Sciences": ["English Language", "Arabic Language", "Mathematics", "Physics", "Chemistry", "Biology", "History", "Geography"],
-  "College of Business & Economics": ["Business Administration", "Accounting", "Economics", "Finance", "Marketing"],
-  "College of Law": ["Law"],
-  "College of Information Technology": ["Computer Science", "Software Engineering", "Information Systems", "Computer Engineering"],
-  "College of Education": ["Education", "Counseling"],
-  "College of Pharmacy": ["Pharmacy"],
-};
-
 function CompleteProfile() {
   const navigate = useNavigate();
+  const [colleges, setColleges] = useState([]);
+  const [majors, setMajors] = useState([]);
   const [form, setForm] = useState({
     first_name: "",
     middle_name: "",
@@ -33,6 +13,8 @@ function CompleteProfile() {
     college: "",
     major: "",
     phone: "",
+    password: "",
+    confirmPassword: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,10 +29,34 @@ function CompleteProfile() {
     }
     if (!user.must_complete_profile) {
       navigate("/dashboard", { replace: true });
+      return;
+    }
+    if (user.name) {
+      const parts = user.name.trim().split(/\s+/);
+      setForm((prev) => ({
+        ...prev,
+        first_name: parts[0] || prev.first_name,
+        last_name: parts.length > 1 ? parts.slice(1).join(" ") : prev.last_name,
+      }));
     }
   }, [user, navigate]);
 
-  const availableMajors = form.college ? (MAJORS_BY_COLLEGE[form.college] || []) : [];
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/colleges").then((r) => r.json()),
+      fetch("/api/majors").then((r) => r.json()),
+    ])
+      .then(([c, m]) => {
+        setColleges(Array.isArray(c) ? c : []);
+        setMajors(Array.isArray(m) ? m : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const collegesList = colleges.map((c) => c.name || c);
+  const availableMajors = form.college
+    ? majors.filter((m) => (m.college_name || "") === form.college).map((m) => m.name)
+    : [];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +75,18 @@ function CompleteProfile() {
       setError("First name, last name, and student number are required.");
       return;
     }
+    if (!form.password) {
+      setError("Please choose a password.");
+      return;
+    }
+    if (form.password.length < 4) {
+      setError("Password must be at least 4 characters.");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/complete-profile", {
@@ -83,6 +101,7 @@ function CompleteProfile() {
           college: form.college || undefined,
           major: form.major || undefined,
           phone: form.phone.trim() || undefined,
+          password: form.password,
         }),
       });
       const data = await res.json();
@@ -116,7 +135,7 @@ function CompleteProfile() {
           </div>
           <h1 className="text-2xl font-bold text-blue-900 text-center mb-1">Complete your profile</h1>
           <p className="text-gray-500 text-sm text-center mb-8">
-            Add your university information to continue. This is required for first-time sign-in with Google.
+            You signed in with Google. Enter your university details and choose a password to finish registration.
           </p>
 
           {error && (
@@ -178,13 +197,13 @@ function CompleteProfile() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">Select college…</option>
-                {COLLEGES_LIST.map((c) => (
+                {collegesList.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Major / Program</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic program</label>
               <select
                 name="major"
                 value={form.major}
@@ -192,7 +211,7 @@ function CompleteProfile() {
                 disabled={!form.college}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:opacity-50"
               >
-                <option value="">Select major…</option>
+                <option value="">Select program…</option>
                 {availableMajors.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -207,6 +226,32 @@ function CompleteProfile() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="+970 59 xxx xxxx"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <input
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="At least 4 characters"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password *</label>
+              <input
+                name="confirmPassword"
+                type="password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                minLength={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Repeat your password"
               />
             </div>
             <button

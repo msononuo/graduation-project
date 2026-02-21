@@ -198,6 +198,38 @@ function AdminPortal() {
     finally { setFormLoading(false); }
   };
 
+  const handleDeleteUser = async (u) => {
+    if (!confirm(`Delete user "${u.email}"? This cannot be undone.`)) return;
+    const id = u?.id ?? u?.userId;
+    if (id == null || id === "") {
+      setFormError("Invalid user (missing id). Refresh the page and try again.");
+      return;
+    }
+    setFormError(""); setFormSuccess("");
+    try {
+      const url = `/api/admin/users/${Number(id) || id}`;
+      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.error || "Could not delete user.";
+        const hint = data.path ? ` (${data.method || "DELETE"} ${data.path})` : "";
+        setFormError(msg + hint);
+        // Still refresh list in case delete succeeded but response was wrong
+        try {
+          const list = await fetch("/api/admin/users", { credentials: "include" }).then((r) => r.json());
+          setUsers(list);
+        } catch {}
+        return;
+      }
+      setFormSuccess("User deleted.");
+      if (editUser?.id === u.id) setEditUser(null);
+      const list = await fetch("/api/admin/users", { credentials: "include" }).then((r) => r.json());
+      setUsers(list);
+    } catch (err) {
+      setFormError(err?.message || "Could not delete user. Is the backend running?");
+    }
+  };
+
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     if (!editUser) return;
@@ -404,6 +436,9 @@ function AdminPortal() {
                             <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.role === "admin" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{u.role}</span></td>
                             <td className="px-4 py-3">
                               <button type="button" onClick={() => { setFormError(""); setFormSuccess(""); setEditUser(u); setForm({ first_name: u.first_name || "", middle_name: u.middle_name || "", last_name: u.last_name || "", student_number: u.student_number || "", college: u.college || "", major: u.major || "", phone: u.phone || "", email: u.email, role: u.role || "student", new_password: "" }); }} className="text-blue-600 hover:underline text-sm">Edit</button>
+                              {u.role !== "admin" && (
+                                <button type="button" onClick={() => handleDeleteUser(u)} className="ml-3 text-red-600 hover:underline text-sm">Delete</button>
+                              )}
                             </td>
                           </tr>
                         ))}
