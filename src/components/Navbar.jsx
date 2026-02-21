@@ -30,6 +30,8 @@ function Navbar() {
   const location = useLocation();
   const [logoError, setLogoError] = useState(false);
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     try {
@@ -38,6 +40,16 @@ function Navbar() {
     } catch {
       setUser(null);
     }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -59,7 +71,6 @@ function Navbar() {
       }`}
     >
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10 py-2 md:py-3 flex items-center justify-between gap-4">
-        {/* Brand */}
         <NavLink to="/" className="flex items-center gap-3 lg:gap-4 flex-shrink-0 min-w-0">
           <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
             {logoError ? (
@@ -83,7 +94,6 @@ function Navbar() {
           </div>
         </NavLink>
 
-        {/* Center links — desktop only */}
         <nav className="hidden lg:flex flex-1 justify-center gap-6 xl:gap-8 min-w-0" aria-label="Main">
           {centerLinks.map(({ to, label, end }) => (
             <NavLink key={label} to={to} end={end} className={centerLinkClass}>
@@ -92,7 +102,7 @@ function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4 sm:gap-6 md:gap-8 flex-shrink-0">
+        <div className="hidden lg:flex items-center gap-4 sm:gap-6 md:gap-8 flex-shrink-0">
           {user?.role === "admin" && (
             <NavLink to="/admin" end className={authLinkClass}>
               Admin
@@ -102,7 +112,7 @@ function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className={`${authLinkClass({ isActive: false })} border-0 bg-transparent cursor-pointer`}
+              className={`${linkBase} border-b-2 border-transparent pb-1 border-0 bg-transparent cursor-pointer`}
             >
               Logout
             </button>
@@ -113,7 +123,6 @@ function Navbar() {
           )}
         </div>
 
-        {/* Mobile: hamburger */}
         <div className="flex lg:hidden items-center gap-2 flex-shrink-0">
           <button
             type="button"
@@ -134,7 +143,6 @@ function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown panel */}
       <div
         id="nav-menu"
         className={`lg:hidden overflow-hidden transition-all duration-200 ${
@@ -162,28 +170,38 @@ function Navbar() {
               </li>
             ))}
             <li className="border-t border-slate-100 mt-2 pt-2">
-              <NavLink
-                to="/login"
-                end
-                className={({ isActive }) =>
-                  `block py-3 px-4 rounded-md ${linkBase} ${isActive ? "font-semibold text-[#00356b]" : ""}`
-                }
-                onClick={() => setMenuOpen(false)}
-              >
-                Login
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/register"
-                end
-                className={({ isActive }) =>
-                  `block py-3 px-4 rounded-md ${linkBase} ${isActive ? "font-semibold text-[#00356b]" : ""}`
-                }
-                onClick={() => setMenuOpen(false)}
-              >
-                Register
-              </NavLink>
+              {user?.role === "admin" && (
+                <NavLink
+                  to="/admin"
+                  end
+                  className={({ isActive }) =>
+                    `block py-3 px-4 rounded-md ${linkBase} ${isActive ? "font-semibold text-[#00356b]" : ""}`
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Admin
+                </NavLink>
+              )}
+              {user ? (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={`block w-full text-left py-3 px-4 rounded-md ${linkBase} bg-transparent border-0 cursor-pointer`}
+                >
+                  Logout
+                </button>
+              ) : (
+                <NavLink
+                  to="/login"
+                  end
+                  className={({ isActive }) =>
+                    `block py-3 px-4 rounded-md ${linkBase} ${isActive ? "font-semibold text-[#00356b]" : ""}`
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </NavLink>
+              )}
             </li>
           </ul>
         </nav>

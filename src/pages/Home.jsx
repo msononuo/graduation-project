@@ -1,49 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const HERO_IMAGE = '/hero-campus.png';
-
-const EVENTS = [
-  {
-    id: '1',
-    date: 'October 24, 2023',
-    time: '10:00 AM',
-    title: 'Global Research Symposium: Innovation in Tech',
-    location: 'Main Auditorium, New Campus',
-    description: 'A gathering of leading researchers and academics to explore cutting-edge developments in technology and their impact on society.',
-    image: '/event1.jpg',
-    tag: 'Research',
-  },
-  {
-    id: '2',
-    date: 'November 02, 2023',
-    time: '2:00 PM',
-    title: 'Fall Open House for Prospective Graduate Students',
-    location: 'Faculty of Graduate Studies',
-    description: 'An opportunity for prospective students to tour the campus, meet faculty, and learn about our graduate programs.',
-    image: '/event2.jpg',
-    tag: 'Admissions',
-  },
-  {
-    id: '3',
-    date: 'November 15, 2023',
-    time: '6:00 PM',
-    title: 'International Cultural Exchange Night 2023',
-    location: 'Student Activity Center',
-    description: 'Celebrate the rich diversity of our campus community through food, music, and cultural performances from around the world.',
-    image: '/event3.jpg',
-    tag: 'Culture',
-  },
-  {
-    id: '4',
-    date: 'December 05, 2023',
-    time: '9:00 AM',
-    title: 'Campus Sustainability Forum',
-    location: 'Engineering Hall, Room 201',
-    description: 'Discussions and workshops focused on sustainable practices, green energy initiatives, and the university\'s environmental commitments.',
-    image: '/event4.jpg',
-    tag: 'Environment',
-  },
-];
 
 // Add to index.html <head>:
 // <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,300&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
@@ -241,7 +199,11 @@ function EventCard({ event, featured = false }) {
 }
 
 function Home() {
-  const [featured, ...rest] = EVENTS;
+  const [events, setEvents] = useState([]);
+  useEffect(() => {
+    fetch('/api/events').then(r => r.json()).then(setEvents).catch(() => setEvents([]));
+  }, []);
+  const [featured, ...rest] = events.length > 0 ? events : [];
 
   return (
     <div className="text-gray-900">
@@ -374,19 +336,18 @@ function Home() {
           </div>
 
           {/* Magazine Editorial Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Featured — spans 1 col, 2 rows visually via taller card */}
-            <div className="lg:col-span-1">
-              <EventCard event={featured} featured />
+          {featured && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <EventCard event={featured} featured />
+              </div>
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                {rest.map(event => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
             </div>
-
-            {/* Side stack — 3 smaller cards */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-              {rest.map(event => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Mobile view all */}
           <div className="sm:hidden mt-8 text-center">

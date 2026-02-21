@@ -12,6 +12,8 @@ import EventApproval from './pages/EventApproval';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import AdminPortal from './pages/AdminPortal';
+import ChangePassword from './pages/ChangePassword';
+import CompleteProfile from './pages/CompleteProfile';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route path="admin" element={<AdminPortal />} />
           <Route path="profile" element={<Profile />} />
           <Route path="login" element={<Login />} />
+          <Route path="change-password" element={<ChangePassword />} />
+          <Route path="complete-profile" element={<CompleteProfile />} />
         </Route>
       </Routes>
     </BrowserRouter>

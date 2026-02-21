@@ -1,55 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import MajorChat from '../components/MajorChat';
-
-// Full details per major (for major detail page)
-const MAJORS_DETAILS = {
-  'eng-mis': {
-    id: 'eng-mis',
-    name: 'Management Information Systems (MIS)',
-    shortName: 'MIS',
-    department: 'Department of Information Systems',
-    collegeId: '1',
-    collegeName: 'College of Engineering & Information Technology',
-    collegeShortName: 'Engineering & IT',
-    tagline: 'Bridging business strategy and information technology',
-    requiredGpa: '80%',
-    highSchoolTrack: 'Scientific, Lit, Comm',
-    degreeType: 'B.Sc',
-    studyDuration: '4 Years',
-    aboutText: 'The Management Information Systems (MIS) program prepares students to design, implement, and manage information systems that support organizational goals. You will learn to analyze business needs, evaluate technology solutions, and lead digital transformation projects. The curriculum combines core business knowledge with technical skills in databases, systems analysis, and enterprise applications, preparing graduates for roles such as systems analyst, IT consultant, business analyst, and project manager.',
-  },
-  'eng-cs': {
-    id: 'eng-cs',
-    name: 'Computer Science',
-    shortName: 'Computer Science',
-    department: 'Department of Computer Science',
-    collegeId: '1',
-    collegeName: 'College of Engineering & Information Technology',
-    collegeShortName: 'Engineering & IT',
-    tagline: 'Algorithms, software systems, and computational theory',
-    requiredGpa: '85%',
-    highSchoolTrack: 'Scientific',
-    degreeType: 'B.Sc',
-    studyDuration: '4 Years',
-    aboutText: 'The Computer Science program provides a strong foundation in algorithms, programming, data structures, and software engineering. Students learn to solve complex problems and build reliable software systems for industry and research.',
-  },
-  'eng-it': {
-    id: 'eng-it',
-    name: 'Information Technology',
-    shortName: 'Information Technology',
-    department: 'Department of Information Technology',
-    collegeId: '1',
-    collegeName: 'College of Engineering & Information Technology',
-    collegeShortName: 'Engineering & IT',
-    tagline: 'Systems, networks, and data in business and technology',
-    requiredGpa: '78%',
-    highSchoolTrack: 'Scientific, Lit, Comm',
-    degreeType: 'B.Sc',
-    studyDuration: '4 Years',
-    aboutText: 'The Information Technology program bridges business and technology, focusing on systems administration, networking, databases, and application development to support organizational needs.',
-  },
-};
 
 const INFO_CARD_ICONS = {
   gpa: (
@@ -77,18 +28,41 @@ const INFO_CARD_ICONS = {
 
 function MajorDetails() {
   const { id } = useParams();
-  const major = MAJORS_DETAILS[id];
+  const [major, setMajor] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Scroll to top when navigating to this major page (fixes content appearing at bottom)
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/programs/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled) setMajor(data);
+      })
+      .catch(() => { if (!cancelled) setMajor(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-[#f7f6f3] min-h-[50vh] flex items-center justify-center">
+        <p className="text-slate-600">Loading program…</p>
+      </div>
+    );
+  }
   if (!major) {
     return (
       <div className="bg-[#f7f6f3] min-h-[50vh] flex items-center justify-center">
         <div className="max-w-screen-2xl mx-auto px-6 lg:px-10 text-center">
-          <h1 className="font-serif text-2xl text-[#0b2d52] mb-4">Major not found</h1>
+          <h1 className="font-serif text-2xl text-[#0b2d52] mb-4">Program not found</h1>
           <Link to="/colleges" className="text-[#00356b] font-semibold hover:underline">
             ← Back to Colleges
           </Link>
@@ -98,74 +72,87 @@ function MajorDetails() {
   }
 
   const infoCards = [
-    { key: 'gpa', label: 'Required GPA', value: major.requiredGpa },
-    { key: 'track', label: 'High School Track', value: major.highSchoolTrack },
-    { key: 'degree', label: 'Degree Type', value: major.degreeType },
-    { key: 'duration', label: 'Study Duration', value: major.studyDuration },
-  ];
+    { key: 'gpa', label: 'Required GPA', value: major.required_gpa },
+    { key: 'track', label: 'High School Track', value: major.high_school_track },
+    { key: 'degree', label: 'Degree Type', value: major.degree_type },
+    { key: 'duration', label: 'Study Duration', value: major.duration },
+  ].filter((c) => c.value);
+
+  const tagline = major.description || major.about_text;
 
   return (
     <div className="text-gray-900 bg-white min-h-screen">
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10 pt-8 pb-20">
-        {/* Breadcrumb — Colleges → Engineering & IT → Major (same style as colleges page) */}
         <nav className="flex items-center gap-2 text-sm mb-8" aria-label="Breadcrumb">
           <Link to="/colleges" className="text-slate-500 hover:text-[#00356b] hover:underline transition">
             Colleges
           </Link>
           <span className="text-slate-300" aria-hidden>›</span>
-          <Link to={`/colleges/${major.collegeId}`} className="text-slate-500 hover:text-[#00356b] hover:underline transition">
-            {major.collegeShortName}
+          <Link to={`/colleges/${major.college_id}`} className="text-slate-500 hover:text-[#00356b] hover:underline transition">
+            {major.college_short_name}
           </Link>
           <span className="text-slate-300" aria-hidden>›</span>
-          <span className="font-semibold text-[#00356b]">{major.shortName}</span>
+          <span className="font-semibold text-[#00356b]">{major.name}</span>
         </nav>
 
-        {/* Title block — department, major name, subtitle */}
+        {major.image_url && (
+          <div className="rounded-xl overflow-hidden bg-slate-100 mb-10 h-48 md:h-64">
+            <img src={major.image_url} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold text-[#00356b]/80 uppercase tracking-widest mb-2">
-            {major.department}
-          </p>
+          {major.department && (
+            <p className="text-xs font-semibold text-[#00356b]/80 uppercase tracking-widest mb-2">
+              {major.department}
+            </p>
+          )}
           <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-semibold text-[#0b2d52] leading-tight tracking-tight mb-4">
             {major.name}
           </h1>
           <div className="flex flex-wrap items-center justify-center gap-2 text-slate-600 text-sm">
-            <span>{major.collegeName}</span>
-            <span className="text-slate-300" aria-hidden>|</span>
-            <span>{major.tagline}</span>
+            <span>{major.college_name}</span>
+            {tagline && (
+              <>
+                <span className="text-slate-300" aria-hidden>|</span>
+                <span>{tagline}</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Key info cards — 4 cards, responsive grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
-          {infoCards.map(({ key, label, value }) => (
-            <div
-              key={key}
-              className="bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-5 text-center"
-            >
-              <div className="flex justify-center mb-3">
-                {INFO_CARD_ICONS[key]}
+        {infoCards.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
+            {infoCards.map(({ key, label, value }) => (
+              <div
+                key={key}
+                className="bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-5 text-center"
+              >
+                <div className="flex justify-center mb-3">
+                  {INFO_CARD_ICONS[key]}
+                </div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  {label}
+                </p>
+                <p className="font-serif text-lg font-semibold text-[#0b2d52]">
+                  {value}
+                </p>
               </div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                {label}
-              </p>
-              <p className="font-serif text-lg font-semibold text-[#0b2d52]">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* About the Major */}
-        <section className="mb-14">
-          <h2 className="font-serif text-2xl font-semibold text-[#0b2d52] text-center mb-6">
-            About the Major
-          </h2>
-          <p className="text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
-            {major.aboutText}
-          </p>
-        </section>
+        {(major.about_text || major.description) && (
+          <section className="mb-14">
+            <h2 className="font-serif text-2xl font-semibold text-[#0b2d52] text-center mb-6">
+              About the Major
+            </h2>
+            <p className="text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+              {major.about_text || major.description}
+            </p>
+          </section>
+        )}
 
-        <MajorChat majorName={major.name} majorShortName={major.shortName} />
+        <MajorChat majorName={major.name} majorShortName={major.name} />
       </div>
     </div>
   );
